@@ -129,3 +129,68 @@ result = solve_MAP(...
             sigma_g,...
             gamma);
 toc
+
+rho_map = reshape(result.m_map,...
+                  mesh.NZ,...
+                  mesh.NX,...
+                  mesh.NY);
+%% ==========================================
+% Diagnostico por perfil Y
+%% ==========================================
+
+perfiles = unique(perfil);
+
+nXZ = mesh.NZ*mesh.NX;
+
+r_prior = L*result.m_map - alpha;
+r_data  = d_obs - result.g_map;
+
+w = full(diag(W));
+
+RMSprior = zeros(mesh.NY,1);
+RMSpriorW = zeros(mesh.NY,1);
+RMSEdata = zeros(mesh.NY,1);
+wY_plot = zeros(mesh.NY,1);
+
+for iy = 1:mesh.NY
+
+    %% Modelo
+    indM = (iy-1)*nXZ + (1:nXZ);
+
+    RMSprior(iy) = ...
+        sqrt(mean(r_prior(indM).^2));
+
+    RMSpriorW(iy) = ...
+        sqrt(mean(w(indM).*r_prior(indM).^2));
+
+    wY_plot(iy) = mean(w(indM));
+
+    %% Datos
+    idxD = perfil == perfiles(iy);
+
+    RMSEdata(iy) = ...
+        sqrt(mean(r_data(idxD).^2));
+
+end
+%% ==========================================
+% problema condicionado a sigma cuadrada
+%% ==========================================
+
+a0 = 2;
+b0 = 1;
+
+result_conj = solve_MAP_conjugate(...
+                    G,...
+                    L,...
+                    W,...
+                    alpha,...
+                    d_obs,...
+                    gamma,...
+                    a0,...
+                    b0);
+
+rho_map_conj = reshape(result_conj.m_map,...
+                  mesh.NZ,...
+                  mesh.NX,...
+                  mesh.NY);
+
